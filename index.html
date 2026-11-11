@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#c9eff8"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>為替レート</title><link rel="manifest" href="manifest.json">
+<style>
+:root{--bg:#c9eff8;--ink:#263746;--panel:#e9f8fc;--line:#a9dce8;--green:#35b96d;--red:#f04444;--nav:#dff5fa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;font-size:12px}
+button,input,select{font:inherit}button{border:0;border-radius:10px;padding:11px;background:white;color:var(--ink);cursor:pointer}
+.app{max-width:520px;margin:auto;min-height:100dvh;padding:env(safe-area-inset-top) 14px calc(18px + env(safe-area-inset-bottom))}
+.top{display:flex;justify-content:space-between;align-items:center;padding:10px 2px;color:#526d7c;font-size:10px}
+h1{font-size:16px;margin:8px 0;font-weight:650}.rate{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#59717d}
+.currency{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px;margin:8px 0}
+.currency-head{display:flex;align-items:center;gap:9px}.flag{font-size:23px}.currency-name{font-size:11px;font-weight:650}.currency-code{font-size:10px;color:#69808b}
+.amount{font-size:27px;font-weight:650;letter-spacing:.3px;text-align:right;margin-top:7px;min-height:32px}
+.keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px}
+.keypad button{font-size:19px;font-weight:550;padding:13px 4px;box-shadow:0 2px 0 #a9cbd3}
+.keypad .op{background:#40bd72;color:white}.keypad .clear{background:#ed5555;color:white}
+.small{font-size:9px;color:#69808b;text-align:center;margin:10px 0}
+nav{position:sticky;bottom:0;background:var(--nav);display:flex;justify-content:space-around;padding:8px 0 calc(7px + env(safe-area-inset-bottom));margin:14px -14px -18px;border-top:1px solid var(--line)}
+nav button{background:transparent;padding:7px 15px;font-size:21px;color:#45616e}nav button.active{color:#087a9b}
+.panel{background:#f4fbfd;border:1px solid var(--line);border-radius:13px;padding:12px;margin:10px 0}
+input,select{width:100%;border:1px solid #b6d7df;border-radius:9px;padding:11px;background:white;color:#253b48;margin:4px 0}
+.row{display:flex;align-items:center;gap:8px}.row>*{flex:1}.muted{color:#6b818b;font-size:9px}.item{display:flex;align-items:center;gap:9px;padding:10px 2px;border-bottom:1px solid #d7e9ed}.item .meta{flex:1;min-width:0}.pill{font-size:9px;color:#187b4d;background:#ddf5e7;padding:4px 7px;border-radius:20px}
+.hidden{display:none!important}.primary{background:#1688a8;color:white;width:100%;font-weight:650;margin-top:7px}.danger{background:#fce6e6;color:#a52b2b}
+.screen-title{font-size:15px;font-weight:650;margin:11px 0}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#233b48;color:white;padding:9px 14px;border-radius:20px;font-size:10px;display:none;z-index:5;max-width:90%;text-align:center}
+</style></head>
+<body><main class="app">
+<div class="top"><span id="today"></span><span>為替レート</span><span>⋯</span></div>
+<section id="currency">
+<div class="rate"><span>通貨換算</span><span>レート更新：デモ表示</span></div>
+<div class="currency"><div class="currency-head"><span class="flag" id="flag1">🇺🇸</span><div><div class="currency-name">アメリカ合衆国</div><div class="currency-code">USD</div></div><button id="swap" style="margin-left:auto;padding:6px 10px">⇅</button></div><div class="amount" id="amount1">1,000</div></div>
+<div class="currency"><div class="currency-head"><span class="flag" id="flag2">🇯🇵</span><div><div class="currency-name">日本</div><div class="currency-code">JPY</div></div></div><div class="amount" id="amount2">154,820</div></div>
+<div class="keypad" id="keys">
+<button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button><button class="op" data-key="÷">÷</button>
+<button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button><button class="op" data-key="×">×</button>
+<button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button><button class="op" data-key="−">−</button>
+<button data-key="0">0</button><button data-key=".">.</button><button class="clear" data-key="C">C</button><button class="op" data-key="+">+</button>
+<button class="op" data-key="=" style="grid-column:span 4">＝</button>
+</div><div class="small">通貨換算・電卓　※為替レートはデモ値です</div>
+</section>
+<section id="mainapp" class="hidden">
+<div id="home" class="view"><div class="screen-title">検索</div><div class="panel"><input id="url" placeholder="動画・画像のURLを貼り付け"><button class="primary" id="search">検索</button><div class="muted">URL検索はアクセス可能なファイルが対象です。ページ側の制限・DRM等は回避しません。</div><div class="muted" style="margin-top:8px">URL検索が使えない場合は、iPhone内のファイルを直接選択して保存できます。</div><input id="filePicker" type="file" accept="video/*,image/*" multiple></div><div id="results"></div></div>
+<div id="collection" class="view hidden"><div class="screen-title">マイコレクション</div><div class="row"><select id="sort"><option value="name">名前順</option><option value="new">新しい順</option><option value="old">古い順</option></select><span class="muted">保存済みファイル</span></div><div id="files"></div></div>
+<div id="settings" class="view hidden"><div class="screen-title">設定</div>
+<div class="panel"><b>テーマ</b><div class="row"><select id="theme"><option value="blue">ブルー</option><option value="purple">パープル</option><option value="green">グリーン</option><option value="orange">オレンジ</option><option value="gray">グレー</option></select><select id="mode"><option value="light">ライト</option><option value="dark">ダーク</option></select></div></div>
+<div class="panel"><b>アプリ起動コード</b><p class="muted">為替画面で設定した数字 → ÷ → ＝ でアプリを開きます。</p><select id="codeLength"><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option><option>7</option><option>8</option></select><input id="entryCode" inputmode="numeric" autocomplete="off" placeholder="2〜8桁の数字" maxlength="8"><button class="primary" id="saveEntry">起動コードを保存</button></div>
+<div class="panel"><b>秘密フォルダのパスワード</b><p class="muted">起動コードとは別のパスワードです。秘密フォルダ内のファイルはAES-GCMで暗号化して保存します。</p><input id="vaultPassword" type="password" autocomplete="new-password" placeholder="8文字以上のパスワード"><button class="primary" id="saveVault">パスワードを設定・変更</button><p class="muted">パスワードを忘れると暗号化ファイルを復元できません。</p></div>
+<div class="panel"><b>データ</b><button id="export">通常ファイルを書き出す</button><button id="clearAll" class="danger">アプリ内データをすべて削除</button><p class="muted">iOS PWAの保存容量・保持期間はOS管理です。80GBの保存は保証できません。</p></div></div>
+<div id="vault" class="view hidden"><div class="screen-title">秘密フォルダ</div><div class="panel"><input id="unlockPass" type="password" autocomplete="current-password" placeholder="秘密フォルダのパスワード"><button class="primary" id="unlockVault">解除</button><p class="muted">解除後、暗号化されたファイルをこの画面で閲覧できます。</p></div><div id="vaultFiles"></div></div>
+<nav><button data-view="home" class="active" aria-label="ホーム">⌕</button><button data-view="collection" aria-label="マイコレクション">▤</button><button data-view="settings" aria-label="設定">⚙</button><button data-view="vault" aria-label="パスワード">▣</button></nav>
+</section></main><div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id), DB='private-collection-v6', STORE='files';let input='',vaultUnlocked=false,vaultCryptoKey=null,calcMode=false,entryBuffer='';
+const enc=new TextEncoder(),dec=new TextDecoder();
+function toast(s){$('toast').textContent=s;$('toast').style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>$('toast').style.display='none',2600)}
+$('today').textContent=new Intl.DateTimeFormat('ja-JP',{month:'2-digit',day:'2-digit',weekday:'short'}).format(new Date());
+function db(){return new Promise((ok,no)=>{let r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
+async function tx(mode,fn){let d=await db();return new Promise((ok,no)=>{let t=d.transaction(STORE,mode),s=t.objectStore(STORE),r=fn(s);t.oncomplete=()=>ok(r?.result);t.onerror=()=>no(t.error)})}
+const all=()=>tx('readonly',s=>s.getAll()),put=x=>tx('readwrite',s=>s.put(x)),add=x=>tx('readwrite',s=>s.add(x)),del=id=>tx('readwrite',s=>s.delete(id));
+function fmt(n){return (n/1048576).toFixed(1)+' MB'}
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function refresh(){let arr=await all();let normal=arr.filter(x=>!x.encrypted),secret=arr.filter(x=>x.encrypted);let mode=$('sort').value;normal.sort((a,b)=>mode==='new'?b.created-a.created:mode==='old'?a.created-b.created:a.name.localeCompare(b.name,'ja'));$('files').innerHTML='';$('vaultFiles').innerHTML='';normal.forEach(x=>draw(x,$('files')));if(vaultUnlocked)secret.forEach(x=>draw(x,$('vaultFiles'),true));}
+function draw(f,root,secret=false){let d=document.createElement('div');d.className='item';d.innerHTML=`<span>${f.type?.startsWith('image/')?'🖼️':'🎬'}</span><div class="meta"><div>${esc(f.name)}</div><div class="muted">${fmt(f.size)} ・ ${new Date(f.created).toLocaleDateString('ja-JP')}</div></div><button aria-label="操作">⋯</button>`;d.querySelector('button').onclick=()=>actions(f,secret);root.append(d)}
+async function actions(f,secret){let choice=prompt(secret?'操作：1 表示/再生、2 秘密フォルダから戻す、3 削除':'操作：1 表示/再生、2 秘密フォルダへ暗号化移動、3 削除');if(choice==='3'){if(confirm('このファイルを削除しますか？')){await del(f.id);refresh()}}else if(choice==='1'){let blob=f.blob;if(secret){if(!vaultCryptoKey){toast('秘密フォルダを解除してください');return}try{blob=await decryptBlob(f)}catch(e){toast('復号できません。パスワードを確認してください');return}}let u=URL.createObjectURL(blob);let w=window.open();if(w){w.document.write(blob.type.startsWith('image/')?`<body style="margin:0;background:#111;display:grid;place-items:center"><img src="${u}" style="max-width:100%;max-height:100vh"></body>`:`<body style="margin:0;background:#111"><video src="${u}" controls autoplay playsinline style="width:100%;height:100vh"></video></body>`)}else toast('ポップアップを許可してください')}else if(choice==='2'&&!secret){if(!vaultCryptoKey){toast('先に設定で秘密フォルダのパスワードを設定し、解除してください');return}if(confirm('ファイルを暗号化して通常一覧から移動しますか？')){try{let cipher=await encryptBlob(f.blob);f.blob=cipher.blob;f.iv=cipher.iv;f.salt=cipher.salt;f.encrypted=true;await put(f);refresh();toast('暗号化して秘密フォルダへ移動しました')}catch(e){toast('暗号化に失敗しました')}}}else if(choice==='2'&&secret){if(confirm('通常の一覧へ戻しますか？')){try{let blob=await decryptBlob(f);f.blob=blob;delete f.iv;delete f.salt;f.encrypted=false;await put(f);refresh();toast('通常一覧へ戻しました')}catch(e){toast('復号に失敗しました')}}}}
+async function derive(pass,salt){let material=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function encryptBlob(blob){let salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));let key=await derive(sessionStorage.getItem('vaultPass'),salt);let data=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,await blob.arrayBuffer());return {blob:new Blob([data],{type:'application/octet-stream'}),iv:[...iv],salt:[...salt]}}
+async function decryptBlob(f){let salt=new Uint8Array(f.salt),iv=new Uint8Array(f.iv),key=await derive(sessionStorage.getItem('vaultPass'),salt);let raw=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,await f.blob.arrayBuffer());return new Blob([raw],{type:f.type})}
+$('keys').addEventListener('click',e=>{let k=e.target.dataset.key;if(!k)return;if(k==='C'){input='';entryBuffer='';calcMode=false}else if(k==='÷'){let code=localStorage.getItem('entryCode');if(code&&input===code){calcMode=true;entryBuffer=input;input='';$('amount1').textContent='0';return}else{input+='÷'}}else if(k==='='){if(calcMode&&entryBuffer===localStorage.getItem('entryCode')){$('currency').classList.add('hidden');$('mainapp').classList.remove('hidden');input='';entryBuffer='';calcMode=false;return}else{try{let exp=input.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');if(/^[0-9.+*/()-]+$/.test(exp))input=String(Function('"use strict";return ('+exp+')')())}catch{input='Error'}calcMode=false}}else input+=k;$('amount1').textContent=input||'0';let n=parseFloat(input);$('amount2').textContent=Number.isFinite(n)?(n*154.82).toLocaleString('ja-JP',{maximumFractionDigits:2}):'0'});
+$('swap').onclick=()=>{let a=$('flag1').textContent;$('flag1').textContent=$('flag2').textContent;$('flag2').textContent=a;toast('通貨を入れ替えました（換算レートはデモ値）')};
+$('saveEntry').onclick=()=>{let len=+$('codeLength').value,v=$('entryCode').value;if(!new RegExp('^\\d{'+len+'}$').test(v)){toast('選択した桁数の数字を入力してください');return}localStorage.setItem('entryCode',v);toast('起動コードを保存しました')};
+$('saveVault').onclick=()=>{let p=$('vaultPassword').value;if(p.length<8){toast('8文字以上で設定してください');return}sessionStorage.setItem('vaultPass',p);localStorage.setItem('vaultConfigured','1');vaultCryptoKey=true;vaultUnlocked=true;$('vaultPassword').value='';toast('秘密フォルダのパスワードを設定しました。暗号化移動が可能です');refresh()};
+$('unlockVault').onclick=()=>{let p=$('unlockPass').value;if(!localStorage.getItem('vaultConfigured')){toast('先に設定でパスワードを設定してください');return}if(!p){toast('パスワードを入力してください');return}sessionStorage.setItem('vaultPass',p);vaultUnlocked=true;vaultCryptoKey=true;$('unlockPass').value='';refresh();toast('秘密フォルダを解除しました')};
+$('filePicker').onchange=async e=>{for(let f of e.target.files){await add({name:f.name,type:f.type,size:f.size,blob:f,encrypted:false,created:Date.now()})}e.target.value='';await refresh();toast('端末内に保存しました')};
+$('search').onclick=async()=>{let u=$('url').value.trim();if(!u){toast('URLを入力してください');return}try{let r=await fetch(u);if(!r.ok)throw Error();let b=await r.blob();if(!/^video\/|^image\//.test(b.type))throw Error();let name=decodeURIComponent(new URL(u).pathname.split('/').pop()||'download');$('results').innerHTML=`<div class="panel"><b>${esc(name)}</b><p class="muted">${esc(b.type)} ・ ${fmt(b.size)}</p><button class="primary" id="saveRemote">このファイルを保存</button></div>`;$('saveRemote').onclick=async()=>{await add({name,type:b.type,size:b.size,blob:b,encrypted:false,created:Date.now()});refresh();toast('保存しました')}}catch(e){$('results').innerHTML='<div class="panel">このURLからブラウザでファイルを取得できませんでした。サイト側の制限（CORS等）の可能性があります。iPhone内のファイル選択をご利用ください。</div>'}};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));$(b.dataset.view).classList.remove('hidden');if(b.dataset.view==='collection'||b.dataset.view==='vault')refresh()});
+$('sort').onchange=refresh;
+$('theme').onchange=e=>{let c={blue:'#c9eff8',purple:'#e7dcf6',green:'#d9f0e1',orange:'#f8e6d2',gray:'#e4e8ec'}[e.target.value];document.documentElement.style.setProperty('--bg',c)};
+$('mode').onchange=e=>{let d=e.target.value==='dark';document.documentElement.style.setProperty('--bg',d?'#172b3a':'#c9eff8');document.documentElement.style.setProperty('--ink',d?'#f1f5f8':'#263746');document.documentElement.style.setProperty('--panel',d?'#263d4e':'#e9f8fc');document.documentElement.style.setProperty('--nav',d?'#203747':'#dff5fa');document.documentElement.style.setProperty('--line',d?'#385467':'#a9dce8');document.body.style.color=d?'#f1f5f8':'#263746'};
+$('export').onclick=async()=>{let fs=(await all()).filter(x=>!x.encrypted);if(!fs.length){toast('通常ファイルがありません');return}for(let f of fs){let a=document.createElement('a'),u=URL.createObjectURL(f.blob);a.href=u;a.download=f.name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}};
+$('clearAll').onclick=async()=>{if(confirm('通常ファイルと秘密フォルダの全データを削除しますか？')){await tx('readwrite',s=>s.clear());refresh();toast('すべて削除しました')}};
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
